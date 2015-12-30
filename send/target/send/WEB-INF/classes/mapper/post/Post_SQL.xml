@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="post">
+	
+	<!-- 게시글 목록 -->
+	<select id="selectUserFriendPostList" parameterType="hashmap" resultType="hashmap">
+		SELECT 
+			sfr.name
+			, sfr.idx
+		    , sfr.picturePath
+		    , sfr.cIdx
+			, sp.p_idx as pIdx
+			, sp.reg_date as regDate
+			, sp.state 
+			, sp.title 
+			, sp.upd_date as updDate
+			, ifnull(sp.hit_cnt,0) as hitCnt
+			, ifnull(sp.like_cnt,0) as likeCnt
+		FROM
+			(   SELECT 
+					su.name
+					, su.idx
+		            , su.picture_path as picturePath 
+		            , su.c_idx as cIdx
+				FROM 
+					send_friend_relation fr left outer join send_user_info su
+					on fr.friend = su.idx
+				WHERE fr.idx = #{idx}
+				AND su.state = 0
+				<if test="myPage != null and myPage != ''">
+	        		AND fr.friend = #{idx}
+	        	</if>
+			) sfr LEFT OUTER JOIN send_post sp
+			ON sfr.idx = sp.idx
+		WHERE 1 = 1
+		-- AND sp.p_idx is not null
+		AND sp.parent_p_idx = 0
+		AND sp.state = 0
+		ORDER BY sp.reg_date DESC
+		LIMIT ${startNo}, ${pageRow}
+	</select>
+	
+	<!-- 조회수 증가 -->
+	<update id="updateHitCnt" parameterType="hashmap">
+		<![CDATA[
+			UPDATE send_post
+			SET
+				HIT_CNT = ifnull(HIT_CNT, 0) + 1
+			WHERE
+				p_idx = #{pIdx}	
+		]]>
+	</update>
+
+	<!-- 게시글 상세보기 -->
+	<select id="selectPostDetail" parameterType="hashmap" resultType="hashmap">
+		<![CDATA[
+			SELECT 
+				sp.p_idx as pIdx
+                , sp.reg_date as regDate
+                , sp.upd_date as updDate
+                , sp.state 
+                , sp.title
+                , sp.like_cnt as likeCnt
+                , ifnull(sp.hit_cnt,0) as hitCnt
+                , spf.f_idx as fIdx
+                , spf.file_path as filePath
+                , spf.file_size as fileSize
+                , spf.file_type as fileType
+                , spf.org_file_name as orgFileName
+                , spf.server_file_name as serverFileName
+                , (select count(1) from send_post where parent_p_idx = #{pIdx}) as replyCnt
+			FROM send_post sp left outer join 
+            (
+				select * from 
+					send_post_file pf
+                where pf.p_idx = #{pIdx}
+            ) spf ON sp.p_idx = spf.p_idx
+			WHERE sp.p_idx = #{pIdx}
+            AND sp.state = 0
+		]]>
+	</select>
+	
+	<!-- 답변글 리스트 -->
+	<select id="selectPostReplyList" parameterType="hashmap" resultType="hashmap">
+		<![CDATA[
+			SELECT 
+				sp.p_idx as pIdx
+                , sp.parent_p_idx as parentPIdx
+                , sp.reg_date as regDate
+                , sp.upd_date as updDate
+                , sp.state 
+                , sp.title
+                , spf.f_idx as fIdx
+                , spf.file_path as filePath
+                , spf.file_size as fileSize
+                , spf.file_type as fileType
+                , spf.org_file_name as orgFileName
+                , spf.server_file_name as serverFileName
+			FROM send_post sp left outer join send_post_file spf
+           		ON sp.p_idx = spf.p_idx 
+			WHERE sp.parent_p_idx = #{pIdx}
+            AND sp.state = 0
+		]]>
+	</select>
+
+	<!-- 해쉬태그 리스트 -->
+	<select id="selectPostHashTagList" parameterType="hashmap" resultType="hashmap">
+		<![CDATA[
+			SELECT 
+				h_idx as hIdx
+				, hash_tag as hashTag
+				, reg_date as regDate
+				, p_idx as pIdx
+			FROM send_hash_tag
+			WHERE p_idx = #{pIdx}
+		]]>
+	</select>
+	
+</mapper>

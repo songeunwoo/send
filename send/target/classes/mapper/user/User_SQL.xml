@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="user">
+	
+	<!-- 사용자 정보 조회 -->
+	<select id="selectUserDetail" parameterType="hashmap" resultType="hashmap">
+		<![CDATA[
+			SELECT 
+				u.idx,
+			    u.background_path as backgroundPath,
+			    u.user_email as userEmail,
+			    u.name ,
+			    u.picture_path as picturePath ,
+			    u.reg_date as regDate ,
+			    u.state ,
+			    u.upd_date as updDate ,
+                (select count(1) from send_post p where p.idx = u.idx) as pCnt ,
+                (select count(1) from send_friend_relation r where r.idx = u.idx)-1 as rCnt
+			FROM send_user_info u
+			WHERE u.idx = #{idx}
+		]]>
+	</select>
+	
+	<!-- 사용자 등록 -->
+	<insert id="insertUser" parameterType="hashmap" useGeneratedKeys="true" keyProperty="idx">
+		<![CDATA[
+			INSERT INTO send_user_info
+			(
+			    background_path
+			    email ,
+			    name ,
+			    picture_path  
+			)
+			VALUES
+			(
+				#{backgroundPath}, 
+				#{email},
+				#{name},
+				#{picturePath}
+			)
+		]]>
+	</insert>
+	
+	<update id="updateUser" parameterType="hashmap">
+		<![CDATA[
+			UPDATE send_user_info 
+			SET
+				TITLE = #{TITLE},
+				CONTENTS = #{CONTENTS}
+			WHERE
+				IDX = #{IDX}	
+		]]>
+	</update>
+	
+	<update id="deleteUser" parameterType="hashmap">
+		<![CDATA[
+			UPDATE TB_User
+			SET
+				DEL_GB = 'Y'
+			WHERE
+				IDX = #{IDX}
+		]]>
+	</update>
+	
+</mapper>
